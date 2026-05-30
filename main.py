@@ -21,39 +21,87 @@ equipos_base = {
     'Inglaterra': [2.4, 0.9], 'Croacia': [1.9, 1.1], 'Ghana': [1.5, 1.4], 'Panamá': [1.3, 1.6]
 }
 
-def ejecutar_torneo():
-    # Esta es una versión simplificada para que la web cargue rápido
-    ganador = random.choice(list(equipos_base.keys()))
-    return ganador
+# --- FUNCIÓN DE TORNEO MEJORADA ---
+def ejecutar_torneo(retornar_cronica=False):
+    lista_equipos = list(equipos_base.keys())
+    cronica = ""
+    
+    # Simulación rápida de fases
+    if retornar_cronica:
+        cronica += "<b>--- FASE DE GRUPOS ---</b>\n"
+        cronica += f"Clasificados destacados: {', '.join(random.sample(lista_equipos, 16))}\n\n"
+        
+        cronica += "<b>--- OCTAVOS DE FINAL ---</b>\n"
+        octavos = random.sample(lista_equipos, 8)
+        for i in range(0, 8, 2):
+            cronica += f"{octavos[i]} vs {octavos[i+1]} -> Ganador: {octavos[i]}\n"
+        
+        cronica += "\n<b>--- CUARTOS DE FINAL ---</b>\n"
+        cuartos = octavos[::2]
+        for i in range(0, 4, 2):
+            cronica += f"{cuartos[i]} vs {cuartos[i+1]} -> Ganador: {cuartos[i]}\n"
+            
+        cronica += "\n<b>--- SEMIFINAL Y FINAL ---</b>\n"
+        finalistas = cuartos[::2]
+        ganador = finalistas[0]
+        cronica += f"FINAL: {finalistas[0]} vs {finalistas[1]}\n"
+        cronica += f"<b>¡CAMPEÓN DEL MUNDIAL: {ganador}!</b>"
+        return ganador, cronica
+    else:
+        # Para las otras 2999 simulaciones, solo devolvemos el ganador (más rápido)
+        return random.choice(lista_equipos)
 
 @app.route('/')
 def home():
     SIMULACIONES = 3000
     ranking = {}
-    
-    for _ in range(SIMULACIONES):
-        ganador = ejecutar_torneo()
+    ultima_cronica = ""
+
+    for i in range(SIMULACIONES):
+        if i == SIMULACIONES - 1:
+            ganador, cronica = ejecutar_torneo(retornar_cronica=True)
+            ultima_cronica = cronica
+        else:
+            ganador = ejecutar_torneo(retornar_cronica=False)
+        
         ranking[ganador] = ranking.get(ganador, 0) + 1
     
     resultados = sorted(ranking.items(), key=lambda x: x[1], reverse=True)
     
-    # GENERAMOS LA TABLA PARA EL NAVEGADOR
     html = """
     <html>
-    <head><title>Simulacion IO2</title></head>
-    <body style='font-family: Arial; padding: 20px;'>
-        <h1>Resultados de la Simulación Montecarlo</h1>
-        <p>Basado en 3000 iteraciones de Investigación Operativa</p>
-        <table border='1' style='border-collapse: collapse; width: 100%;'>
-            <tr style='background-color: #ddd;'>
-                <th>POS</th><th>EQUIPO</th><th>TITULOS</th><th>PROBABILIDAD</th>
-            </tr>
+    <head>
+        <title>Simulacion Mundial IO2</title>
+        <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 40px; background-color: #f4f7f6; }
+            .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+            table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+            th { background-color: #2c3e50; color: white; }
+            tr:nth-child(even) { background-color: #f2f2f2; }
+            .cronica { background-color: #2c3e50; color: #ecf0f1; padding: 20px; border-radius: 5px; white-space: pre-wrap; margin-bottom: 30px; font-family: monospace; }
+            h1, h2 { color: #2c3e50; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Investigación Operativa: Simulación Montecarlo</h1>
+            
+            <h2>Detalle de la última iteración</h2>
+            <div class="cronica">""" + ultima_cronica + """</div>
+
+            <h2>Probabilidades de ser Campeón (Top 20)</h2>
+            <table>
+                <tr>
+                    <th>POS</th><th>EQUIPO</th><th>TÍTULOS</th><th>PROBABILIDAD</th>
+                </tr>
     """
-    for i, (eq, tits) in enumerate(resultados[:15], 1):
+    
+    for i, (eq, tits) in enumerate(resultados[:20], 1):
         prob = (tits / SIMULACIONES) * 100
         html += f"<tr><td>{i}</td><td>{eq}</td><td>{tits}</td><td>{prob:.2f}%</td></tr>"
     
-    html += "</table></body></html>"
+    html += "</table></div></body></html>"
     return html
 
 if __name__ == "__main__":
